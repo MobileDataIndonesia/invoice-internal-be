@@ -15,3 +15,5 @@ export const parseZodError = (error: ZodError) => {
 
   return { error: formatted };
 };
+
+export default parseZodError;
