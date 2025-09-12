@@ -30,6 +30,8 @@ model User {
 model Client{
   client_id       String @id @default(uuid())
   client_name     String @unique
+  client_email    String @unique
+  client_password String
   currency        String
   country         String
   client_address  String
