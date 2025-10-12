@@ -36,8 +36,7 @@ import HttpError from '@utils/httpError';
  *          description: Jumlah yang dibayarkan
  *        proof_of_transfer:
  *          type: string
- *          format: binary
- *          description: Bukti transfer pembayaran
+ *          description: Bukti transfer pembayaran dalam format base64
  *        voided_at:
  *          type: string
  *          format: date-time
@@ -63,7 +62,7 @@ import HttpError from '@utils/httpError';
  *        payment_id: "123e4567-e89b-12d3-a456-426614174000"
  *        payment_date: "2024-05-01"
  *        amount_paid: 1000
- *        proof_of_transfer: "payments/upload/123e4567-e89b-12d3-a456-426614174000.jpg"
+ *        proof_of_transfer: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAAAAAAAD..."
  *        voided_at: null
  *        created_at: "2024-05-01T12:00:00Z"
  *        updated_at: "2024-05-01T12:00:00Z"
@@ -201,8 +200,11 @@ export const createPaymentController = async (req: Request, res: Response): Prom
       req.body.amount_paid = parseFloat(req.body.amount_paid);
     }
 
+    // Convert file to base64 if file exists
     if (!req.body.proof_of_transfer && req.file) {
-      req.body.proof_of_transfer = `payments/upload/${req.file.filename}`;
+      const fileBuffer = req.file.buffer;
+      const base64String = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      req.body.proof_of_transfer = base64String;
     }
 
     const validate = await paymentRequestSchema.safeParseAsync(req.body);
@@ -213,7 +215,7 @@ export const createPaymentController = async (req: Request, res: Response): Prom
       return responseHelper(res, 'error', 400, 'Invalid parameters', parsedError);
     }
 
-    const payment = await createPaymentService(validate.data, req.file!);
+    const payment = await createPaymentService(validate.data);
     req.body.proof_of_transfer = payment.proof_of_transfer;
 
     await log(req, 'SUCCESS', 'Create Payment - Data successfully created');
@@ -573,6 +575,13 @@ export const editPaymentController = async (req: Request, res: Response) => {
       req.body.amount_paid = parseFloat(req.body.amount_paid);
     }
 
+    // Convert file to base64 if file exists
+    if (req.file) {
+      const fileBuffer = req.file.buffer;
+      const base64String = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      req.body.proof_of_transfer = base64String;
+    }
+
     const validate = await paymentUpdateRequestSchema.safeParseAsync(req.body);
 
     if (!validate.success) {
@@ -581,7 +590,7 @@ export const editPaymentController = async (req: Request, res: Response) => {
       return responseHelper(res, 'error', 400, 'Invalid parameters', parsed);
     }
 
-    const payment = await editPaymentService(paymentId, validate.data, req.file ?? null);
+    const payment = await editPaymentService(paymentId, validate.data);
     req.body.proof_of_transfer = payment.proof_of_transfer;
 
     await log(req, 'SUCCESS', 'Edit Payment - Data successfully updated');
@@ -599,7 +608,7 @@ export const editPaymentController = async (req: Request, res: Response) => {
  * @swagger
  * /payments/upload/{filename}:
  *   get:
- *     summary: Mendapatkan bukti pembayaran berdasarkan nama file
+ *     summary: Mendapatkan bukti pembayaran berdasarkan payment ID
  *     tags:
  *       - Payments
  *     security:
@@ -610,7 +619,8 @@ export const editPaymentController = async (req: Request, res: Response) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: Nama file bukti pembayaran yang ingin diambil
+ *           format: uuid
+ *         description: Payment ID untuk mengambil bukti pembayaran
  *     responses:
  *       200:
  *         description: Bukti pembayaran berhasil ditemukan dan dikirimkan
@@ -632,7 +642,7 @@ export const editPaymentController = async (req: Request, res: Response) => {
  *                   example: Invalid parameters
  *                 data:
  *                   type: object
- *                   example: { message: "Payment Filename is required" }
+ *                   example: { message: "Payment ID is required" }
  *       403:
  *         description: Akses tidak diizinkan untuk file ini
  *         content:
@@ -691,43 +701,40 @@ export const editPaymentController = async (req: Request, res: Response) => {
  */
 export const getProofPaymentController = async (req: Request, res: Response) => {
   try {
-    const filename = req.params.filename;
+    const paymentId = req.params.filename; // Change parameter name to payment ID
 
-    if (!filename) {
-      await log(req, 'ERROR', 'Get Proof of Payment - Filename is required');
+    if (!paymentId) {
+      await log(req, 'ERROR', 'Get Proof of Payment - Payment ID is required');
       return responseHelper(res, 'error', 400, 'Invalid parameters', {
-        message: 'Payment Filename is required',
+        message: 'Payment ID is required',
       });
     }
 
-    const filePath = await getProofPaymentService(filename);
-    const safePath = path.resolve(filePath);
-    const baseDir = path.resolve('uploads', 'payments');
+    const base64Data = await getProofPaymentService(paymentId);
 
-    if (!safePath.startsWith(baseDir)) {
-      await log(req, 'ERROR', 'Get Proof of Payment - Unauthorized access attempt');
-      return responseHelper(
-        res,
-        'error',
-        403,
-        'You do not have permission to access this resource',
-        null,
-      );
-    }
-
-    if (!fs.existsSync(safePath)) {
+    if (!base64Data) {
       await log(req, 'ERROR', 'Get Proof of Payment - File not found');
       return responseHelper(res, 'error', 404, 'Data not found', { message: 'File not found' });
     }
 
-    res.sendFile(safePath, async err => {
-      if (err) {
-        await log(req, 'ERROR', 'Get Proof of Payment - Error sending file');
-        return responseHelper(res, 'error', 500, 'Internal server error', {
-          error: 'Error sending file',
-        });
-      }
-    });
+    // Extract mime type and base64 data
+    const mimeMatch = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+
+    if (!mimeMatch || !mimeMatch[1] || !mimeMatch[2]) {
+      await log(req, 'ERROR', 'Get Proof of Payment - Invalid base64 format');
+      return responseHelper(res, 'error', 400, 'Invalid file format', null);
+    }
+
+    const mimeType = mimeMatch[1];
+    const base64String = mimeMatch[2];
+    const buffer = Buffer.from(base64String, 'base64');
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Length', buffer.length);
+
+    // Send the binary data
+    res.end(buffer);
 
     await log(req, 'SUCCESS', 'Get Proof of Payment - File successfully sent');
   } catch (error) {
