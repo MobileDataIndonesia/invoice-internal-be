@@ -63,6 +63,11 @@ export const clientSchema = z.object({
     .regex(phoneRegex, {
       message: 'Invalid phone number. Example: +6281234567890, 08123456789, (021)1234567',
     }),
+  client_email: z.string().email({ message: 'Invalid email address' }),
+  client_password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters long' })
+    .max(100, { message: 'Password must be less than 100 characters' }),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -74,6 +79,8 @@ export const clientRequestSchema = clientSchema.pick({
   client_address: true,
   postal_code: true,
   client_phone: true,
+  client_email: true,
+  client_password: true,
 });
 
 export type ClientRequest = z.infer<typeof clientRequestSchema>;

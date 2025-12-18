@@ -130,6 +130,7 @@ import log from '@utils/logs';
 export const createClientController = async (req: Request, res: Response): Promise<void> => {
   const validate = await clientRequestSchema.safeParseAsync(req.body);
 
+  console.log(req.body);
   if (!validate.success) {
     await log(req, 'ERROR', 'Invalid parameters');
     const parsed = parseZodError(validate.error);

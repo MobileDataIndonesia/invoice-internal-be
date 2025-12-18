@@ -130,3 +130,13 @@ model Log{
   @@index([created_at, log_id, username])
   @@map("logs")
 }
+
+model Notification{
+  notification_id     Int @id @default(autoincrement())
+  message             String
+  read                Boolean @default(false)
+  created_at          DateTime @default(now())
+
+  @@index([notification_id])
+  @@map("notifications")
+}
