@@ -1,6 +1,7 @@
 import { prisma } from '@config/db';
 import { type ClientRequest } from '@models/client.model';
 import HttpError from '@utils/httpError';
+import bcrypt from 'bcryptjs';
 
 export const createClientService = async (clientData: ClientRequest) => {
   try {
@@ -14,8 +15,13 @@ export const createClientService = async (clientData: ClientRequest) => {
       throw new HttpError('Client already exists', 409);
     }
 
+    const hashedPassword = await bcrypt.hash(clientData.client_password, 10);
+
     const client = await prisma.client.create({
-      data: clientData,
+      data: {
+        ...clientData,
+        client_password: hashedPassword,
+      },
     });
 
     return client;
@@ -75,6 +81,9 @@ export const editClientByIdService = async (client_id: string, clientData: Clien
     if (!client) {
       throw new HttpError('Client not found', 404);
     }
+
+    const hashedPassword = await bcrypt.hash(clientData.client_password, 10);
+    clientData.client_password = hashedPassword;
 
     const updatedClient = await prisma.client.update({
       where: {
