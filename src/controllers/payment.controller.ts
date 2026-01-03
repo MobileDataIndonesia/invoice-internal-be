@@ -5,7 +5,7 @@ import {
   getAllPaymentService,
   getPaymentByIdService,
   editPaymentService,
-  getProofPaymentService,
+  //getProofPaymentService,
   togglePaymentVoidStatusService,
 } from '@services/payment.service';
 import responseHelper from '@utils/responseHelper';
@@ -699,52 +699,52 @@ export const editPaymentController = async (req: Request, res: Response) => {
  *                 data:
  *                   type: "null"
  */
-export const getProofPaymentController = async (req: Request, res: Response) => {
-  try {
-    const paymentId = req.params.filename; // Change parameter name to payment ID
+// export const getProofPaymentController = async (req: Request, res: Response) => {
+//   try {
+//     const paymentId = req.params.filename; // Change parameter name to payment ID
 
-    if (!paymentId) {
-      await log(req, 'ERROR', 'Get Proof of Payment - Payment ID is required');
-      return responseHelper(res, 'error', 400, 'Invalid parameters', {
-        message: 'Payment ID is required',
-      });
-    }
+//     if (!paymentId) {
+//       await log(req, 'ERROR', 'Get Proof of Payment - Payment ID is required');
+//       return responseHelper(res, 'error', 400, 'Invalid parameters', {
+//         message: 'Payment ID is required',
+//       });
+//     }
 
-    const base64Data = await getProofPaymentService(paymentId);
+//     const base64Data = await getProofPaymentService(paymentId);
 
-    if (!base64Data) {
-      await log(req, 'ERROR', 'Get Proof of Payment - File not found');
-      return responseHelper(res, 'error', 404, 'Data not found', { message: 'File not found' });
-    }
+//     if (!base64Data) {
+//       await log(req, 'ERROR', 'Get Proof of Payment - File not found');
+//       return responseHelper(res, 'error', 404, 'Data not found', { message: 'File not found' });
+//     }
 
-    // Extract mime type and base64 data
-    const mimeMatch = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+//     // Extract mime type and base64 data
+//     const mimeMatch = base64Data.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
 
-    if (!mimeMatch || !mimeMatch[1] || !mimeMatch[2]) {
-      await log(req, 'ERROR', 'Get Proof of Payment - Invalid base64 format');
-      return responseHelper(res, 'error', 400, 'Invalid file format', null);
-    }
+//     if (!mimeMatch || !mimeMatch[1] || !mimeMatch[2]) {
+//       await log(req, 'ERROR', 'Get Proof of Payment - Invalid base64 format');
+//       return responseHelper(res, 'error', 400, 'Invalid file format', null);
+//     }
 
-    const mimeType = mimeMatch[1];
-    const base64String = mimeMatch[2];
-    const buffer = Buffer.from(base64String, 'base64');
+//     const mimeType = mimeMatch[1];
+//     const base64String = mimeMatch[2];
+//     const buffer = Buffer.from(base64String, 'base64');
 
-    // Set appropriate headers
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Length', buffer.length);
+//     // Set appropriate headers
+//     res.setHeader('Content-Type', mimeType);
+//     res.setHeader('Content-Length', buffer.length);
 
-    // Send the binary data
-    res.end(buffer);
+//     // Send the binary data
+//     res.end(buffer);
 
-    await log(req, 'SUCCESS', 'Get Proof of Payment - File successfully sent');
-  } catch (error) {
-    const errorMessage = error instanceof HttpError ? error.message : 'Internal server error';
-    const statusCode = error instanceof HttpError ? error.statusCode : 500;
+//     await log(req, 'SUCCESS', 'Get Proof of Payment - File successfully sent');
+//   } catch (error) {
+//     const errorMessage = error instanceof HttpError ? error.message : 'Internal server error';
+//     const statusCode = error instanceof HttpError ? error.statusCode : 500;
 
-    await log(req, 'ERROR', errorMessage);
-    responseHelper(res, 'error', statusCode, errorMessage, null);
-  }
-};
+//     await log(req, 'ERROR', errorMessage);
+//     responseHelper(res, 'error', statusCode, errorMessage, null);
+//   }
+// };
 
 /**
  * @swagger

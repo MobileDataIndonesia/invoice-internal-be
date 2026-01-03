@@ -4,7 +4,7 @@ import {
   getAllPaymentController,
   getPaymentByIdController,
   editPaymentController,
-  getProofPaymentController,
+  //getProofPaymentController,
   togglePaymentVoidStatusController,
 } from '@controllers/payment.controller';
 import { upload_payment } from '@utils/multerSetup';
@@ -16,12 +16,12 @@ const router = Router();
 router.get('/', authGuard, roleGuard(['finance', 'management']), getAllPaymentController);
 router.get('/:id', authGuard, roleGuard(['finance', 'management']), getPaymentByIdController);
 
-router.get(
-  '/upload/:filename',
-  authGuard,
-  roleGuard(['finance', 'management']),
-  getProofPaymentController,
-);
+// router.get(
+//   '/upload/:filename',
+//   authGuard,
+//   roleGuard(['finance', 'management']),
+//   getProofPaymentController,
+// );
 
 router.post(
   '/',

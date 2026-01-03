@@ -167,26 +167,26 @@ export const editPaymentService = async (
   }
 };
 
-export const getProofPaymentService = async (payment_id: string) => {
-  try {
-    const payment = await prisma.payment.findUnique({
-      where: { payment_id },
-      select: { proof_of_transfer: true },
-    });
+// export const getProofPaymentService = async (payment_id: string) => {
+//   try {
+//     const payment = await prisma.payment.findUnique({
+//       where: { payment_id },
+//       select: { proof_of_transfer: true },
+//     });
 
-    if (!payment) {
-      throw new HttpError('Payment not found', 404);
-    }
+//     if (!payment) {
+//       throw new HttpError('Payment not found', 404);
+//     }
 
-    return payment.proof_of_transfer;
-  } catch (error) {
-    if (error instanceof HttpError) {
-      throw error;
-    }
+//     return payment.proof_of_transfer;
+//   } catch (error) {
+//     if (error instanceof HttpError) {
+//       throw error;
+//     }
 
-    throw new HttpError('Internal Server Error', 500);
-  }
-};
+//     throw new HttpError('Internal Server Error', 500);
+//   }
+// };
 
 export const togglePaymentVoidStatusService = async (payment_id: string) => {
   try {
@@ -206,10 +206,7 @@ export const togglePaymentVoidStatusService = async (payment_id: string) => {
         },
       });
 
-      // Update invoice amount paid if voiding the payment
-      if (!payment.voided_at) {
-        await updateInvoiceColAmountPaidService(transaction, payment.invoice_id);
-      }
+      await updateInvoiceColAmountPaidService(transaction, payment.invoice_id);
 
       return updatedPaymentRecord;
     });
