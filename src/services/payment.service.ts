@@ -206,10 +206,7 @@ export const togglePaymentVoidStatusService = async (payment_id: string) => {
         },
       });
 
-      // Update invoice amount paid if voiding the payment
-      if (!payment.voided_at) {
-        await updateInvoiceColAmountPaidService(transaction, payment.invoice_id);
-      }
+      await updateInvoiceColAmountPaidService(transaction, payment.invoice_id);
 
       return updatedPaymentRecord;
     });
