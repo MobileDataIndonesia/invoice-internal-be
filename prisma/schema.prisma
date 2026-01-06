@@ -42,6 +42,7 @@ model Client{
   updated_at      DateTime @updatedAt
 
   invoices        Invoice[]
+  notifications   Notification[]
 
   @@index([client_id])
   @@map("clients")
@@ -72,6 +73,7 @@ model Invoice{
 
   //relasi invoice - payment
   payments            Payment[]
+
 
   @@index([invoice_id, invoice_number])
   @@map("invoices")
@@ -133,9 +135,13 @@ model Log{
 
 model Notification{
   notification_id     Int @id @default(autoincrement())
+  client_id           String
   message             String
   read                Boolean @default(false)
   created_at          DateTime @default(now())
+
+  client              Client @relation(fields: [client_id], references: [client_id], onDelete: Cascade)
+
 
   @@index([notification_id])
   @@map("notifications")
